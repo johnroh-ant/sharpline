@@ -1,0 +1,216 @@
+<title>Sharpline</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Odds-board layout: scoreboard strip, tabs, then bet tickets that each carry a line ruler (FanDuel / sharp / model). */
+:root{--bg:#f3f5f8;--panel:#fff;--ink:#121a26;--mute:#5a6779;--rule:#dce2ea;--soft:#e9eef5;--accent:#2a78d6;--alt:#eb6834;--good:#0d7a46;--bad:#c22f2f;--warn:#8a5a00;--warnbg:#fdf3dc;
+--disp:"Barlow Condensed","Arial Narrow",sans-serif;--body:"Barlow",system-ui,sans-serif;--num:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f141c;--panel:#171e29;--ink:#e9eef5;--mute:#97a4b6;--rule:#2a3443;--soft:#212b39;--accent:#3987e5;--alt:#d95926;--good:#46c487;--bad:#f07a7a;--warn:#f0c674;--warnbg:#2d2614;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f141c;--panel:#171e29;--ink:#e9eef5;--mute:#97a4b6;--rule:#2a3443;--soft:#212b39;--accent:#3987e5;--alt:#d95926;--good:#46c487;--bad:#f07a7a;--warn:#f0c674;--warnbg:#2d2614;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 56px;display:grid;gap:20px}
+.wrap>*,section>*{min-width:0}
+h1,h2,h3{font-family:var(--disp);margin:0;text-wrap:balance;line-height:1.1}
+h1{font-size:34px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+h2{font-size:24px;font-weight:600}h3{font-size:20px;font-weight:600}
+p{margin:0;max-width:68ch}.mute{color:var(--mute)}.small{font-size:13px}
+.n{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:.92em}
+.pos{color:var(--good)}.neg{color:var(--bad)}
+header{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;justify-content:space-between}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border:1px solid var(--rule);border-radius:6px}
+.strip div{padding:12px 16px;border-left:1px solid var(--rule);min-width:0}.strip div:first-child{border-left:0}
+.strip b{display:block;font:600 28px/1.15 var(--disp);font-variant-numeric:tabular-nums}
+.lab{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);font-weight:500}
+nav{display:flex;gap:4px 20px;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
+nav a{font:600 18px var(--disp);letter-spacing:.03em;text-transform:uppercase;color:var(--mute);text-decoration:none;padding:6px 0;border-bottom:3px solid transparent;margin-bottom:-1px}
+nav a[aria-current]{color:var(--ink);border-color:var(--accent)}nav a:hover{color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section{display:grid;gap:18px}
+.note{background:var(--warnbg);color:var(--ink);padding:10px 14px;border-radius:6px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.note b{color:var(--warn)}.note p{max-width:none;flex:1 1 320px}
+.bar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+select,input,button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:5px 10px;max-width:100%}
+button{cursor:pointer}button.go{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.tickets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.t{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;display:grid;gap:10px;min-width:0}
+.t.fill{background:transparent;border-style:dashed}
+.top{display:flex;gap:12px;justify-content:space-between;align-items:flex-start}.top>div{min-width:0}
+.stake{text-align:right;flex:none}.stake b{font:700 28px/1 var(--disp);display:block}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:1px 7px;border-radius:3px;background:var(--soft);color:var(--mute);white-space:nowrap}
+.pill.won{color:var(--good)}.pill.lost{color:var(--bad)}
+.why{display:grid;grid-template-columns:minmax(0,1fr) 92px 48px;gap:3px 10px;align-items:center;font-size:13.5px}
+.track{height:8px;position:relative}.track:before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--rule)}
+.track i{position:absolute;top:0;height:8px;background:var(--accent);border-radius:0 3px 3px 0}.track i.l{background:var(--alt);border-radius:3px 0 0 3px}
+.why .n{text-align:right}
+details summary{cursor:pointer;color:var(--mute);font-size:13px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);font-weight:500;text-align:right;white-space:nowrap}
+th,td{padding:6px 10px;border-bottom:1px solid var(--rule)}td{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child,.l{text-align:left}th:first-child,td:first-child{padding-left:0}
+tr.hit td{background:var(--soft)}td.wrapok{white-space:normal;min-width:190px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 36px;align-items:start}.two>div{display:grid;gap:8px;min-width:0}
+.chart{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:12px 8px 6px;position:relative}
+.chart svg{display:block;width:100%}.chart text{font:12px var(--body);fill:var(--mute)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;padding:0 8px 6px}.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 9px;border-radius:4px;white-space:nowrap;top:34px}
+.ruler text{font:11px var(--body);fill:var(--mute)}.ruler{display:block;width:100%}
+ol.steps{margin:0;padding-left:22px;display:grid;gap:10px;max-width:72ch}ul{margin:0;padding-left:20px;display:grid;gap:6px;max-width:72ch}
+a{color:var(--accent)}
+@media (max-width:760px){.tickets,.two{grid-template-columns:minmax(0,1fr)}.strip{grid-template-columns:repeat(2,1fr)}.strip div:nth-child(3){border-left:0}.strip div:nth-child(n+3){border-top:1px solid var(--rule)}.strip b{font-size:24px}}
+</style>
+<div class="wrap">
+  <header><h1>Sharpline</h1><span class="mute small" id="status">Loading the ledger</span></header>
+  <div class="note" id="banner" hidden></div>
+  <form class="note" id="unlock" hidden><p><b>Live ledger found.</b> Enter the passphrase from setup. It stays in this browser.</p>
+    <input id="pass" type="password" autocomplete="current-password" aria-label="Passphrase"><button class="go">Unlock</button><span class="neg small" id="passerr"></span></form>
+  <div class="strip" id="strip"></div>
+  <nav id="nav"><a href="#card">Daily card</a><a href="#games">All games</a><a href="#progress">Progress</a><a href="#history">Bet history</a><a href="#logic">How it works</a><a href="#backtest">Old vs new</a></nav>
+  <section id="view"></section>
+</div>
+<script>
+const RAW="https://raw.githubusercontent.com/johnroh-ant/sharpline/main/data/";
+const BASE=location.hostname.endsWith("github.io")?"data/":RAW;
+const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const minus=s=>String(s).replace("-","−");
+const sg=(v,d=1)=>v==null?"–":minus((v>0?"+":"")+(+v).toFixed(d)), odds=v=>v==null?"–":minus((v>0?"+":"")+Math.round(v));
+const pct=(v,d=1)=>v==null||isNaN(v)?"–":(100*v).toFixed(d)+"%", spct=(v,d=1)=>v==null||isNaN(v)?"–":sg(100*v,d)+"%";
+const usd=(v,s)=>v==null?"–":(v<0?"−":s&&v>0?"+":"")+"$"+Math.abs(Math.round(v)).toLocaleString(), cls=v=>v>0?"pos":v<0?"neg":"";
+const dec=a=>a>0?1+a/100:1+100/-a, am=p=>p>=.5?-100*p/(1-p):100*(1-p)/p;
+const when=t=>new Date(t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"America/Los_Angeles"})+" PT";
+const dayName=d=>new Date(d+"T12:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+const MK={spreads:"Spread",h2h:"Moneyline",totals:"Total"}, BOOK={pinnacle:"Pinnacle",novig:"Novig",prophetx:"ProphetX",kalshi:"Kalshi",lowvig:"LowVig",betonlineag:"BetOnline",draftkings:"DraftKings",betmgm:"BetMGM",betrivers:"BetRivers"};
+const S={index:null,replay:null,bt:null,key:null,days:{},date:null,f:{sport:"",res:"",tier:""},show:100};
+const table=(h,rows,left=[])=>`<div class="scroll"><table><thead><tr>${h.map((x,i)=>`<th class="${left.includes(i)?"l":""}">${x}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+const tr=(c,k="",left=[])=>`<tr class="${k}">${c.map((x,i)=>`<td class="${left.includes(i)?"l":""}">${x}</td>`).join("")}</tr>`;
+
+async function derive(p){const e=new TextEncoder(),k=await crypto.subtle.importKey("raw",e.encode(p),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",hash:"SHA-256",salt:e.encode("sharpline-ledger-v1"),iterations:200000},k,{name:"AES-GCM",length:256},false,["decrypt"])}
+async function open_(buf,key){const b=new Uint8Array(buf),z=await crypto.subtle.decrypt({name:"AES-GCM",iv:b.slice(0,12)},key,b.slice(12));
+  return new Response(new Blob([z]).stream().pipeThrough(new DecompressionStream("gzip"))).json()}
+const grab=async u=>{const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw Error(r.status);return r};
+async function day(d){if(S.replay)return S.replay.days[d];return S.days[d]??=await open_(await(await grab(`${BASE}days/${d}.enc`)).arrayBuffer(),S.key)}
+
+function stats(b){const s=b.filter(x=>x.status!="pending"),w=s.filter(x=>x.status=="won").length,l=s.filter(x=>x.status=="lost").length,g=s.filter(x=>x.status!="void"),
+  st=g.reduce((a,x)=>a+x.stake,0),pl=s.reduce((a,x)=>a+x.profit,0),c=b.filter(x=>x.clv!=null&&Math.abs(x.clv)>.0005);
+  return{n:s.length,w,l,p:s.length-w-l,win:w/(w+l),st,pl,roi:pl/st,said:g.reduce((a,x)=>a+x.p,0)/g.length,exp:g.reduce((a,x)=>a+x.ev*x.stake,0),up:c.filter(x=>x.clv>0).length,cn:c.length}}
+function strip(){const i=S.index;if(!i){$("strip").hidden=true;return}$("strip").hidden=false;const s=stats(i.bets),pend=i.bets.filter(b=>b.status=="pending");
+  $("strip").innerHTML=`<div><span class="lab">Bankroll</span><b>${usd(i.bankroll0+s.pl)}</b><span class="small ${cls(s.pl)}">${usd(s.pl,1)} from ${usd(i.bankroll0)}</span></div>
+  <div><span class="lab">Record</span><b>${s.w}–${s.l}${s.p?"–"+s.p:""}</b><span class="small mute">${pct(s.win)} won</span></div>
+  <div><span class="lab">Return on stakes</span><b class="${cls(s.roi)}">${spct(s.roi)}</b><span class="small mute">${usd(s.st)} staked · ${usd(pend.reduce((a,b)=>a+b.stake,0))} in play</span></div>
+  <div><span class="lab">Line moved our way</span><b>${pct(s.up/s.cn,0)}</b><span class="small mute">${s.up} of ${s.cn} re-checked bets</span></div>`}
+
+function lineChart(el,x,series,base=0){const draw=()=>{const W=Math.max(300,el.clientWidth-16),H=W<520?220:290,m={l:58,r:W<520?14:76,t:10,b:26},all=series.flatMap(s=>s.v).concat(base);
+  let lo=Math.min(...all),hi=Math.max(...all);const raw=(hi-lo||1)/4,p=10**Math.floor(Math.log10(raw)),st=[1,2,2.5,5,10].map(k=>k*p).find(k=>k>=raw);lo=Math.floor(lo/st)*st;hi=Math.ceil(hi/st)*st;if(hi==lo)hi+=st;
+  const X=i=>m.l+(W-m.l-m.r)*(x.length>1?i/(x.length-1):.5),Y=v=>m.t+(H-m.t-m.b)*(1-(v-lo)/(hi-lo)),k=Math.max(Math.abs(lo),Math.abs(hi))>=2e4||st>=5e3;let g="";
+  for(let v=lo;v<=hi+1e-6;v+=st)g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(${Math.abs(v-base)<1e-6?"--mute":"--rule"})"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${k&&v?(v<0?"−":"")+"$"+Math.abs(v/1e3)+"K":usd(v)}</text>`;
+  const long=new Date(x.at(-1))-new Date(x[0])>3e10,nt=Math.min(x.length,W<520?3:6);for(let j=0;j<nt;j++){const i=nt>1?Math.round(j*(x.length-1)/(nt-1)):0;g+=`<text x="${X(i)}" y="${H-6}" text-anchor="${j==0?"start":j==nt-1?"end":"middle"}">${new Date(x[i]+"T12:00").toLocaleDateString("en-US",long?{month:"short",year:"numeric"}:{month:"short",day:"numeric"})}</text>`}
+  series.forEach(s=>{g+=`<path fill="none" stroke="var(${s.c})" stroke-width="2" stroke-linejoin="round" d="M${s.v.map((v,i)=>X(i).toFixed(1)+" "+Y(v).toFixed(1)).join("L")}"/><circle cx="${X(x.length-1)}" cy="${Y(s.v.at(-1))}" r="4" fill="var(${s.c})" stroke="var(--panel)" stroke-width="2"/>`});
+  if(W>=520){const e=series.map(s=>Y(s.v.at(-1)));if(e.length==2&&Math.abs(e[0]-e[1])<14){const c=(e[0]+e[1])/2,d=e[0]<=e[1]?-8:8;e[0]=c+d;e[1]=c-d}series.forEach((s,j)=>g+=`<text x="${W-m.r+9}" y="${e[j]+4}" style="fill:var(--ink)">${usd(s.v.at(-1),base==0)}</text>`)}
+  el.innerHTML=`<div class="legend">${series.map(s=>`<span><i style="background:var(${s.c})"></i>${s.n}</span>`).join("")}</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${series.map(s=>s.n+" ends at "+usd(s.v.at(-1))).join(", ")}">${g}<line class="x" y1="${m.t}" y2="${H-m.b}" stroke="var(--mute)" visibility="hidden"/></svg><div class="tip" hidden></div>`;
+  const sv=el.querySelector("svg"),c=el.querySelector(".x"),t=el.querySelector(".tip");
+  sv.onpointermove=e=>{const r=sv.getBoundingClientRect(),i=Math.max(0,Math.min(x.length-1,Math.round(((e.clientX-r.left)*W/r.width-m.l)/(W-m.l-m.r)*(x.length-1))));c.setAttribute("x1",X(i));c.setAttribute("x2",X(i));c.setAttribute("visibility","visible");
+    t.hidden=false;t.innerHTML=`${dayName(x[i])}<br>`+series.map(s=>`${s.n}: ${usd(s.v[i],base==0)}`).join("<br>");const px=X(i)*r.width/W+8;t.style.left=px>r.width/2?"":px+12+"px";t.style.right=px>r.width/2?r.width-px+28+"px":""};
+  sv.onpointerleave=()=>{t.hidden=true;c.setAttribute("visibility","hidden")}};draw();S.redraw=draw}
+
+function ruler(b,g){const m=g.markets[b.market],a=b.side=="a";let v,f;
+  if(b.market=="h2h"||g.sport=="MLB"){const q=p=>p==null?null:100*(a?p:1-p);v=[100/dec(b.price),q(m.sharp_p),q(m.p)];f=x=>x.toFixed(1)+"%"}
+  else if(b.market=="totals"){v=[b.line,m.sharp_line,m.fair_line];f=x=>x.toFixed(1)}else{const s=a?-1:1;v=[s*b.line,m.sharp_line==null?null:s*m.sharp_line,s*m.fair_line];f=x=>sg(x)}
+  const prob=b.market=="h2h"||g.sport=="MLB",ok=v.filter(x=>x!=null),pad=prob?1.2:.7,lo=Math.min(...ok)-pad,hi=Math.max(...ok)+pad,X=x=>40+(x-lo)/(hi-lo)*340,an=x=>"middle";
+  let s=`<line x1="14" x2="406" y1="24" y2="24" stroke="var(--rule)" stroke-width="2"/><line x1="${X(v[0])}" x2="${X(v[2])}" y1="24" y2="24" stroke="var(--accent)" stroke-width="4" opacity=".35"/>`;
+  s+=`<rect x="${X(v[0])-2}" y="15" width="4" height="18" fill="var(--ink)"/><text x="${X(v[0])}" y="10" text-anchor="middle">${prob?"Break-even":"FanDuel"} ${f(v[0])}</text>`;
+  let xs=v[1]==null?null:X(v[1]),xm=X(v[2]),ls=xs,lm=xm;if(xs!=null&&Math.abs(xs-xm)<78){const c=(xs+xm)/2,d=xs<=xm?-39:39;ls=c+d;lm=c-d}
+  if(xs!=null)s+=`<circle cx="${xs}" cy="24" r="5" fill="var(--panel)" stroke="var(--mute)" stroke-width="2"/><text x="${ls}" y="47" text-anchor="middle">Sharp ${f(v[1])}</text>`;
+  s+=`<circle cx="${xm}" cy="24" r="6" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/><text x="${lm}" y="47" text-anchor="middle" style="fill:var(--ink);font-weight:600">Model ${f(v[2])}</text>`;
+  return `<svg class="ruler" viewBox="0 0 420 52" role="img" aria-label="FanDuel ${f(v[0])}, model ${f(v[2])}">${s}</svg>`}
+const score=(b)=>b.score?`${esc(b.away.split(" ").at(-1))} ${b.score[1]}, ${esc(b.home.split(" ").at(-1))} ${b.score[0]}`:"";
+function context(g){const i=g.info||{},o=[],nick=s=>esc(s.split(" ").at(-1));
+  if(i.luck)o.push(`Shooting luck so far, points per 100 possessions: ${nick(g.home)} ${sg(i.luck[0])}, ${nick(g.away)} ${sg(i.luck[1])}. Projected pace ${i.pace}.`);
+  if(i.qbs&&i.qbs[0])o.push(`Quarterbacks: ${esc(i.qbs[1])} at ${esc(i.qbs[0])}.`);if(i.wind!=null)o.push(`Wind forecast ${i.wind} mph.`);
+  if(i.pitchers)o.push(`Starters: ${esc(i.pitchers[1]||"TBD")} at ${esc(i.pitchers[0]||"TBD")}.`);
+  if(i.own_margin!=null)o.push(`Ratings alone: ${nick(g.home)} ${sg(-i.own_margin)}, total ${i.own_total}.`);return o.join(" ")}
+function ticket(b,g){const be=1/dec(b.price),u=g.sport=="MLB"?"runs":"pts",mx=Math.max(.6,...b.reasons.map(r=>Math.abs(r[1]))),m=g.markets[b.market],a=b.side=="a";
+  const lead=b.ev>0?`${odds(b.price)} needs ${pct(be)} to break even. The model has it at ${pct(b.p)} (fair price ${odds(b.fair_price)}), an edge of ${spct(b.ev)}.`:`No edge found (${spct(b.ev)}). This fills the 10-bet card at the $1 minimum: the model has it at ${pct(b.p)} and the price needs ${pct(be)}.`;
+  const ln=q=>b.market=="h2h"?"":b.market=="totals"?q+" ":sg(a?-q:q)+" ";
+  return `<article class="t ${b.ev>0?"":"fill"}"><div class="top"><div><span class="lab">${g.sport} · ${MK[b.market]} · ${when(b.start)}</span><h3>${esc(minus(b.pick))} <span class="n mute">${odds(b.price)}</span></h3><span class="small mute">${esc(b.away)} at ${esc(b.home)}</span></div>
+  <div class="stake"><b>$${b.stake}</b><span class="lab">conf ${b.conf}</span></div></div>
+  <div class="bar"><span class="pill ${b.status}">${b.status=="won"?"✓ won":b.status=="lost"?"✕ lost":b.status}</span>${b.profit!=null?`<span class="n ${cls(b.profit)}">${usd(b.profit,1)}</span>`:""}<span class="small mute">${score(b)}</span>${b.clv!=null?`<span class="small mute">Sharp line later moved ${Math.abs(100*b.clv).toFixed(1)} pts of win chance ${b.clv>=0?"our way":"against us"}</span>`:""}</div>
+  ${ruler(b,g)}<p>${lead}</p>
+  <div class="why">${b.reasons.slice(0,5).map(([k,v])=>`<span>${esc(k)}</span><span class="track"><i class="${v<0?"l":""}" style="${v<0?"right":"left"}:50%;width:${Math.abs(v)/mx*50}%"></i></span><span class="n">${sg(v,2)}</span>`).join("")}</div>
+  <details><summary>Values above are ${u} toward this pick. Show context and the other books</summary><p class="small" style="margin:8px 0">${context(g)}</p>${m.others.length?table(["Book","Same side"],m.others.map(o=>tr([BOOK[o[0]]||esc(o[0]),`<span class="n">${ln(o[1])}${odds(o[a?2:3])}</span>`]))):`<p class="small mute">No other book had this market posted.</p>`}</details></article>`}
+const picker=()=>`<div class="bar"><label class="lab" for="date">Day</label><select id="date">${[...S.index.days].reverse().map(d=>`<option value="${d}" ${d==S.date?"selected":""}>${dayName(d)}</option>`).join("")}</select><span class="mute small" id="daysum"></span></div>`;
+const empty=`<p class="mute">The first card appears after the first 9 AM run.</p>`;
+
+const V={
+async card(){if(!S.index?.days.length)return empty;const d=await day(S.date),G=Object.fromEntries(d.games.map(g=>[g.id,g])),s=stats(d.bets);
+  S.after=()=>$("daysum").textContent=`${d.bets.length} bets from ${d.games.length} games analyzed · ${d.bets.filter(b=>b.ev>0).length} with an edge`+(s.n?` · ${s.w}–${s.l}, ${usd(s.pl,1)}`:"");
+  return picker()+(d.bets.length?`<div class="tickets">${d.bets.map(b=>ticket(b,G[b.game])).join("")}</div>`:`<p class="mute">No games on the board this day.</p>`)},
+async games(){if(!S.index?.days.length)return empty;const d=await day(S.date),bet=new Set(d.bets.map(b=>b.game));S.after=()=>$("daysum").textContent="Home-team lines. Shaded rows have a bet. Every game here feeds the learning step.";
+  const best=g=>Math.max(...Object.values(g.markets).flatMap(m=>m.ev)),N=s=>`<span class="n">${s}</span>`;
+  return picker()+table(["Game","Time","FD spread","Sharp","Model","FD total","Sharp","Model","FD ML","Model ML","Best edge","Final"],[...d.games].sort((a,b)=>best(b)-best(a)).map(g=>{const s=g.markets.spreads,t=g.markets.totals,h=g.markets.h2h,mlb=g.sport=="MLB";
+    return tr([`<span class="lab">${g.sport}</span> ${esc(g.away)} at ${esc(g.home)}`,when(g.start),N(s?sg(-s.quote[0])+" "+odds(s.quote[1]):"–"),N(!s?"–":mlb?(s.sharp_p?odds(am(s.sharp_p)):"–"):s.sharp_line==null?"–":sg(-s.sharp_line)),N(!s?"–":mlb?odds(am(s.p)):sg(-s.fair_line)),N(t?t.quote[0]:"–"),N(t?.sharp_line??"–"),N(t?t.fair_line:"–"),N(h?odds(h.quote[1]):"–"),N(h?odds(am(h.p)):"–"),`<span class="n ${best(g)>0?"pos":"mute"}">${spct(best(g))}</span>`,g.score?N(g.score[1]+"–"+g.score[0]):`<span class="pill">${g.status}</span>`],bet.has(g.id)?"hit":"")}))},
+async progress(){if(!S.index?.days.length)return empty;const i=S.index,b=i.bets,by={};b.filter(x=>x.status!="pending").forEach(x=>{const r=by[x.date]??=[0,0];r[0]+=x.profit;if(x.status!="void")r[1]+=x.ev*x.stake});
+  const ds=Object.keys(by).sort();let a=i.bankroll0,e=a;const A=[],E=[];ds.forEach(d=>{A.push(a+=by[d][0]);E.push(e+=by[d][1])});
+  S.after=()=>{if(ds.length)lineChart($("c1"),ds,[{n:"Bankroll",v:A,c:"--accent"},{n:"What the model expected",v:E,c:"--alt"}],i.bankroll0)};
+  const grp=(t,f,keys)=>`<div><h2>${t}</h2>${table(["","Record","Won","Model said","Staked","Profit","Return"],keys.map(([k,l])=>{const s=stats(b.filter(x=>f(x)==k));return s.n?tr([l,`${s.w}–${s.l}`,pct(s.win),pct(s.said),usd(s.st),`<span class="${cls(s.pl)}">${usd(s.pl,1)}</span>`,spct(s.roi)]):""}))}</div>`;
+  const sd=Math.sqrt(b.filter(x=>x.status=="won"||x.status=="lost").reduce((q,x)=>q+x.stake*x.stake*(dec(x.price)-1),0));
+  return `<h2>Bankroll</h2>${ds.length?`<div class="chart" id="c1"></div><p class="small mute">Luck alone moves the bankroll about ±${usd(sd)} around the expected line at this sample size (one standard deviation). Judge the model after 1,000 or more bets. Line movement is the earlier signal.</p>`:`<p class="mute">The chart starts once the first bets settle.</p>`}
+  <div class="two">${grp("By sport",x=>x.sport,["NFL","NBA","NCAAB","MLB"].map(k=>[k,k]))}${grp("By market",x=>x.market,Object.entries(MK))}${grp("By confidence",tier,TIERS)}
+  <div><h2>Market trust</h2><p class="small mute">When FanDuel and the sharp books disagree at 9 AM, the share of the gap that FanDuel moves to close. The model trusts the sharp line by this much.</p>${table(["","Start","Now","Games"],i.trust.filter(t=>t.n).map(t=>tr([t.sport+" "+MK[t.market].toLowerCase(),pct(t.start,0),pct(t.now,0),t.n])))}</div></div>
+  <h2>What it has learned</h2><p class="small mute">Points added to the line per unit of each signal. Start is the backtested value. Now includes every game analyzed since launch.</p>
+  <div class="two">${i.weights.map(w=>`<div><h3>${w.sport} ${w.kind=="margin"?"sides":"totals"} <span class="small mute">${w.n} games learned</span></h3>${table(["Signal","Start","Now"],w.rows.map(r=>`<tr><td class="wrapok">${esc(r.label)}</td><td class="n">${sg(r.start,3)}</td><td class="n">${sg(r.now,3)}</td></tr>`))}</div>`).join("")}</div>
+  <h2>Recent runs</h2>${table(["When","Run","Games","Bets","Graded","Notes"],[...i.runs].reverse().slice(0,12).map(r=>tr([new Date(r.at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Los_Angeles"}),r.kind,r.games??"",r.bets??"",r.graded??"",esc((r.notes||[]).join("; "))],"",[5])),[5])}${i.credits!=null?`<p class="small mute">Odds API credits left this month: ${i.credits} of 500.</p>`:""}`},
+async history(){if(!S.index?.bets.length)return empty;const f=S.f,b=[...S.index.bets].reverse().filter(x=>(!f.sport||x.sport==f.sport)&&(!f.res||x.status==f.res)&&(!f.tier||tier(x)==f.tier)),s=stats(b);
+  const sel=(id,l,o)=>`<select id="f-${id}" aria-label="${l}"><option value="">${l}</option>${o.map(([k,t])=>`<option value="${k}" ${f[id]==k?"selected":""}>${t}</option>`).join("")}</select>`;
+  S.after=()=>{for(const k in f)$("f-"+k).onchange=e=>{f[k]=e.target.value;route()};if($("more"))$("more").onclick=()=>{S.show+=200;route()};document.querySelectorAll("[data-d]").forEach(a=>a.onclick=()=>S.date=a.dataset.d)};
+  return `<div class="bar">${sel("sport","All sports",["NFL","NBA","NCAAB","MLB"].map(k=>[k,k]))}${sel("res","All results",["won","lost","push","void","pending"].map(k=>[k,k]))}${sel("tier","All confidence",TIERS)}<span class="small mute">${b.length} bets · ${s.w}–${s.l} · ${usd(s.pl,1)}</span></div>`+
+  table(["Date","Sport","Pick","Price","Final","Stake","Win %","Edge","Line move","Result","Profit"],b.slice(0,S.show).map(x=>tr([`<a href="#card" data-d="${x.date}">${x.date.slice(5)}</a>`,x.sport,`${esc(minus(x.pick))} <span class="small mute">${x.market=="totals"?esc(x.away.split(" ").at(-1)+" at "+x.home.split(" ").at(-1)):""}</span>`,`<span class="n">${odds(x.price)}</span>`,`<span class="small mute">${score(x)}</span>`,"$"+x.stake,pct(x.p),spct(x.ev),x.clv==null?"–":sg(100*x.clv),`<span class="pill ${x.status}">${x.status}</span>`,`<span class="${cls(x.profit)}">${usd(x.profit,1)}</span>`],"",[1,2,4])),[1,2,4])+(b.length>S.show?`<div><button id="more">Show more</button></div>`:"")},
+async logic(){return `<h2>The idea</h2><p>The betting market is the best forecast there is. Sharpline starts from the sharpest version of that market, moves it only for reasons that have beaten closing lines for years, and bets where FanDuel's price is worse than the result.</p>
+  <h2>Each morning, in order</h2><ol class="steps">
+  <li><b>Settle and learn.</b> Grade yesterday's bets. Postponed games refund. Every analyzed game updates the signal weights, whether or not it was bet.</li>
+  <li><b>Read ten books.</b> FanDuel plus Pinnacle, Novig, ProphetX, Kalshi, LowVig, BetOnline, DraftKings, BetMGM and BetRivers. The vig comes off each price, and every line converts to one scale using real score distributions (NFL games land on 3 about 2.6 times as often as a bell curve says).</li>
+  <li><b>Build the sharp line.</b> A weighted average. Pinnacle and the three exchanges count most because their 9 AM prices were closest to the close. Outliers and thin quotes are dropped.</li>
+  <li><b>Apply the signals.</b> Usually under one point in total. See the table below.</li>
+  <li><b>Price FanDuel.</b> Win chance and edge for both sides of the spread, moneyline and total. One side and one total per game. Prices outside −260 to +150 are skipped.</li>
+  <li><b>Pick ten.</b> Confidence follows the Kelly formula, so the same edge scores higher on a likelier winner. Stake equals confidence. If fewer than ten bets have an edge, the rest go in at $1.</li>
+  <li><b>Re-check at 3 PM.</b> A second look at the lines records whether the sharp line moved toward each bet.</li></ol>
+  <h2>Signals that earned a place</h2>${table(["Sport","Signal","Why it works","Evidence vs closing lines"],[
+  ["NCAAB, NBA","Shooting luck","Three-point and free-throw percentage swing a lot from game to game. Ratings are built twice, once with 60–65% of three-point luck removed. The market chases the lucky version.","t = 4 to 9 across 73,000 games"],
+  ["NCAAB","Efficiency rating","KenPom-style offense, defense and tempo, adjusted for opponents. 360 teams are too many to price perfectly. Discounted when a team has under 3 games.","55% on its strongest 1,600 sides"],
+  ["NBA","Recent market ratings, last-game overreaction, mismatch and playoff totals","Lines overshoot after one big result. Blowouts run over. Playoff games run under.","Totals 53% of 3,450 picks. Sides are weak and sized small."],
+  ["NFL","Line vs the market's usual rating, rest, wind, division games","One week of news moves lines too far. Unders hit 55% at 10+ mph wind.","5% return over 2,300 picks"],
+  ["MLB","Market gap only","Starter strikeout and walk rates, bullpen quality and fatigue, and lineup wOBA added nothing once the price was known. A team rating is tracked at near-zero weight and must earn more.","No gain on 17,000 games"]
+  ].map(r=>`<tr>${r.map(c=>`<td class="wrapok l">${c}</td>`).join("")}</tr>`),[1,2,3])}
+  <h2>What I drew on</h2><ul><li><a href="https://arxiv.org/abs/1710.02824">Kaunitz, Zhong and Kreiner (2017)</a>: bet one book against the consensus of many.</li><li><a href="https://arxiv.org/abs/2303.06021">Walsh and Joshi (2024)</a>: calibrated probabilities matter more than picking winners.</li><li>KenPom and Torvik adjusted efficiency, nfelo's market-regressed ratings and key numbers, FIP and wOBA for baseball, fractional Kelly staking.</li><li>Data: The Odds API, hoopR, nflverse, MLB Stats API, Retrosheet, Open-Meteo.</li></ul>
+  <h2>Limits</h2><ul><li>No injury feed. The sharp line carries that news, and signals switch off when the ratings and the market are far apart.</li><li>Many days have only two to five real edges, more once college basketball fills the board.</li><li>Games that start before the 9 AM run are missed, such as NFL games in Europe.</li></ul>`},
+async backtest(){const t=S.bt;if(!t)return `<p class="mute">The backtest file did not load.</p>`;S.after=()=>lineChart($("c2"),t.curve.map(r=>r[0]),[{n:"Sharpline",v:t.curve.map(r=>r[1]),c:"--accent"},{n:"Old model",v:t.curve.map(r=>r[2]),c:"--alt"}]);
+  const R=s=>`<span class="${cls(s.roi)}">${spct(s.roi)}</span>`,row=(l,s)=>tr([l,s.n.toLocaleString(),pct(s.said),pct(s.win),spct(s.claimed),R(s)+` <span class="small mute">±${pct(s.se)}</span>`,usd(s.staked),`<span class="${cls(s.pnl)}">${usd(s.pnl,1)}</span>`]);
+  return `<h2>Same days, same prices, ten bets a day</h2><p>Both models replayed from January 2022 to November 2026. The old model is its actual code. Sharpline's weights for each season come only from earlier seasons.</p><div class="chart" id="c2"></div>
+  ${table(["","Bets","Said it would win","Won","Claimed edge","Return","Staked","Profit"],[row("Old model",t.old),row("Sharpline",t.new),row("Sharpline, no MLB",t.new_ex_mlb),row("Sharpline since 2016",t.full)])}
+  <div class="two"><div><h2>By sport</h2>${table(["","Old won","Old return","New won","New return"],Object.entries(t.sport).map(([k,v])=>tr([k,pct(v.old.win),R(v.old),pct(v.new.win),R(v.new)])))}</div>
+  <div><h2>Does confidence mean anything?</h2>${table(["Confidence","Old bets","Old won","New bets","New won","New return"],["1","2-25","26-50","51-75","76-100"].map(k=>tr([k,t.conf.old[k].n.toLocaleString(),pct(t.conf.old[k].win),t.conf.new[k].n.toLocaleString(),pct(t.conf.new[k].win),R(t.conf.new[k])])))}</div>
+  <div><h2>Why the old model lost</h2><ul><li><b>It trusted itself five times too much.</b> Its weight against the market drifted to 48%. The data supported 0–12%. Its formula compared raw errors, which game noise makes nearly equal for any model.</li><li><b>It bet most where it knew least.</b> The biggest disagreements with FanDuel were usually injuries or lineup news it could not see. 73% of bets scored 76 or higher and won 47.8%.</li><li><b>Its math invented edges.</b> Baseball lines converted with one curve and back with another. Spread and total prices were ignored. A home-win correction leaked into totals.</li><li><b>It looked at one book</b> and was never tested against historical odds.</li></ul></div>
+  <div><h2>Sharpline by year</h2>${table(["Year","Bets","Won","Return","Profit"],Object.entries(t.year).map(([k,v])=>tr([k,v.n.toLocaleString(),pct(v.win),R(v),usd(v.pnl,1)])))}</div></div>
+  <h2>Read this with care</h2><ul><li>Expect less live. I chose the signals after looking at this history. A return of 1–3% would be a good real result.</li><li>MLB uses opening lines that books posted at different times, which flatters it. The no-MLB row is the cleaner number.</li><li>College lines end in April 2024 and MLB lines in August 2025, so the curve flattens as the two busiest sports drop out of the data. On 627 college games this November the side signal went 51%, too few to judge.</li><li>NFL wind used actual readings. Live runs use forecasts.</li><li>${pct(t.losing_months,0)} of months lost money, and the worst slide was ${usd(t.drawdown)}.</li></ul>`}};
+const TIERS=[["a","$1 fillers"],["b","2–25"],["c","26–50"],["d","51–100"]], tier=x=>x.conf<=1?"a":x.conf<=25?"b":x.conf<=50?"c":"d";
+
+async function route(){const h=V[location.hash.slice(1)]?location.hash.slice(1):S.index?"card":"backtest";S.after=S.redraw=null;
+  $("nav").querySelectorAll("a").forEach(a=>a.toggleAttribute("aria-current",a.hash=="#"+h));
+  try{$("view").innerHTML=await V[h]()}catch(e){$("view").innerHTML=`<p class="neg">That day's file did not load. Reload the page to try again.</p>`}
+  S.after?.();if($("date"))$("date").onchange=e=>{S.date=e.target.value;route()}}
+function use(index){S.index=index;const withBets=[...new Set(index.bets.map(b=>b.date))];S.date=S.replay?withBets.at(-1):index.days.at(-1);strip();
+  const late=!S.replay&&Date.now()-new Date(index.updated)>30*36e5;
+  $("status").textContent=S.replay?"Replay of Oct 21 to Nov 16, 2026":"Updated "+new Date(index.updated).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Los_Angeles"})+" PT · fake money";
+  if(late){$("banner").hidden=false;$("banner").innerHTML="<p><b>No run in over a day.</b> Check the Actions tab of the sharpline repo on GitHub.</p>"}route()}
+async function boot(){S.bt=await grab("backtest.json").then(r=>r.json()).catch(()=>null);
+  try{await window.claude?.use?.("network")}catch(e){}
+  const enc=await grab(BASE+"index.enc").then(r=>r.arrayBuffer()).catch(()=>null);
+  const tryKey=async p=>{const k=await derive(p),i=await open_(enc,k);S.key=k;S.replay=null;$("unlock").hidden=$("banner").hidden=true;try{localStorage.setItem("sl",p)}catch(e){}use(i)};
+  if(enc){let p=null;try{p=localStorage.getItem("sl")}catch(e){}if(p){try{return await tryKey(p)}catch(e){}}
+    $("unlock").hidden=false;$("unlock").onsubmit=e=>{e.preventDefault();tryKey($("pass").value.trim()).catch(()=>$("passerr").textContent="That passphrase does not open the ledger.")}}
+  S.replay=await grab("replay.json").then(r=>r.json()).catch(()=>null);
+  if(S.replay){$("banner").hidden=false;$("banner").innerHTML=`<p><b>Replay, not your live ledger.</b> This is the model run on recorded 9 AM prices for 21 days of NBA and NFL, with real results and no college games or wind data. It lost $266, about 1.3 standard deviations of luck below what it expected. The old model lost $2,268 on the same games. Live cards appear at <a href="https://johnroh-ant.github.io/sharpline/">johnroh-ant.github.io/sharpline</a> after setup.</p>`;use(S.replay.index)}
+  else{$("status").textContent=enc?"Locked":"Waiting for the first run";strip();route()}}
+addEventListener("hashchange",route);let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>S.redraw?.(),150)});boot();
+</script>

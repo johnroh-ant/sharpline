@@ -1,0 +1,6 @@
+.cache/
+__pycache__/
+_site/
+.env
+.ok
+.handled

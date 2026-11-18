@@ -1,0 +1,63 @@
+name: daily
+on:
+  # UTC. Both Pacific offsets are listed; the app ignores triggers before 8:45 AM Pacific
+  # and runs once per day, so the later ones are only backups for a delayed scheduler.
+  schedule:
+    - cron: "52 15,16 * * *"
+    - cron: "8,26 16,17 * * *"
+    - cron: "14 18,19 * * *"
+    - cron: "17 22,23 * * *"
+  workflow_dispatch:
+    inputs:
+      force: { description: "Run now even if today's card exists or it is before 8:45", type: boolean, default: false }
+  push:
+    paths: ["site/**"]
+permissions: { contents: write, pages: write, id-token: write }
+concurrency: { group: daily, cancel-in-progress: false }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: { name: github-pages, url: "${{ steps.pages.outputs.page_url }}" }
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -q -r requirements.txt
+      - uses: actions/cache@v4
+        with: { path: .cache, key: "feeds-${{ github.run_id }}", restore-keys: feeds- }
+      - name: Settle, learn, bet
+        if: github.event_name != 'push'
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          LEDGER_PASSPHRASE: ${{ secrets.LEDGER_PASSPHRASE }}
+          FORCE: ${{ inputs.force && '--force' || '' }}
+        # exit 1 is a handled feed outage with consistent files; a crash or timeout is rolled back below
+        run: python -m sharpline.run auto $FORCE && touch .ok || { [ -f .handled ] && touch .ok; exit 1; }
+      - name: Save the ledger
+        id: save
+        if: always()
+        run: |
+          git config user.name "sharpline" && git config user.email "sharpline@users.noreply.github.com"
+          [ -f .ok ] || { git checkout -q -- data; git clean -fdq data; }
+          git add data
+          if git diff --cached --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git commit -qm "ledger $(TZ=America/Los_Angeles date +'%F %H:%M')"
+          git pull -q --rebase
+          git push -q
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - name: Build the page
+        id: build
+        if: always() && steps.save.outcome == 'success' && (steps.save.outputs.changed == 'true' || github.event_name != 'schedule')
+        run: |
+          mkdir -p _site/data
+          cp site/*.json _site/
+          cp -r data/. _site/data/
+          rm -f _site/data/state.enc
+          { echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>'; cat site/index.html; echo '</body></html>'; } > _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        if: always() && steps.build.outcome == 'success'
+      - uses: actions/deploy-pages@v4
+        id: pages
+        if: always() && steps.build.outcome == 'success'
