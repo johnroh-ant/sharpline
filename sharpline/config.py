@@ -20,6 +20,8 @@ SPORTS = {
     "MLB": "baseball_mlb",
 }
 
+ACTIVE = ("NFL", "NBA", "MLB")  # bet these; the rest of SPORTS can still settle
+
 BOOK = "fanduel"
 # Ten books cost the same API credits as one. Weights follow how well each
 # book's 9 AM price predicted the closing line (MODEL.md section 3).

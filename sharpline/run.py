@@ -30,9 +30,9 @@ def save(state, index, now):
         dict(sport=s, kind=k, n=state["learn"]["signals"][f"{s}_{k}"]["n"], rows=[
             dict(label=signals.LABELS[k][f], start=r2(a, 3), now=r2(b, 3)) for f, a, b in
             zip(signals.names(s, k), learn.weights(prior, s, k), learn.weights(state["learn"], s, k))])
-        for s, k in signals.FEATURES]
+        for s, k in signals.FEATURES if s in config.ACTIVE]
     index["trust"] = [dict(sport=s, market=m, start=r2(learn.trust(prior, s, m)), now=r2(learn.trust(state["learn"], s, m)),
-                           n=state["learn"]["trust"][f"{s}_{m}"]["n"]) for s in config.SPORTS for m in MARKETS]
+                           n=state["learn"]["trust"][f"{s}_{m}"]["n"]) for s in config.ACTIVE for m in MARKETS]
     store.save("state", state)
     store.save("index", index)
 
@@ -273,7 +273,7 @@ def morning(now, force=False):
     day = store.load(f"days/{date}") or dict(date=date, games=[], bets=[])
     midnight = dt.datetime.combine(local.date() + dt.timedelta(days=1), dt.time(), config.TZ)
     seen, cands, slate, failed = {g["id"] for g in day["games"]}, [], {}, []
-    for sport in config.SPORTS:
+    for sport in config.ACTIVE:
         try:
             slate[sport] = feeds.odds(sport, now + dt.timedelta(minutes=5), midnight - dt.timedelta(seconds=1))
         except Exception as e:
@@ -336,7 +336,7 @@ def afternoon(now, force=False):
     if not force and (state.get("last_afternoon") == date or local.strftime("%H:%M") < config.RECHECK_AFTER):
         return print("nothing to do")
     day = store.load(f"days/{date}")
-    open_ = [g for g in (day or {}).get("games", []) if g["sport"] != "NFL" and pd.Timestamp(g["start"]) > now
+    open_ = [g for g in (day or {}).get("games", []) if g["sport"] in config.ACTIVE and g["sport"] != "NFL" and pd.Timestamp(g["start"]) > now
              and not any("close" in m for m in g["markets"].values())]
     sports = sorted({g["sport"] for g in open_})
     days_left = calendar.monthrange(local.year, local.month)[1] - local.day
