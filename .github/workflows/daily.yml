@@ -58,6 +58,13 @@ jobs:
           { echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>'; cat site/index.html; echo '</body></html>'; } > _site/index.html
       - uses: actions/upload-pages-artifact@v3
         if: always() && steps.build.outcome == 'success'
+      - run: sleep 20
+        if: always() && steps.build.outcome == 'success'
       - uses: actions/deploy-pages@v4
         id: pages
         if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
+      - run: sleep 60
+        if: always() && steps.pages.outcome == 'failure'
+      - uses: actions/deploy-pages@v4
+        if: always() && steps.pages.outcome == 'failure'
